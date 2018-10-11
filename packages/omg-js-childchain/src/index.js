@@ -18,6 +18,7 @@ const { singleSign, signedEncode } = require('./transaction/signature')
 const { base16Encode } = require('./transaction/base16')
 const submitTx = require('./transaction/submitRPC')
 const watcherApi = require('./watcherApi')
+const ChannelSocket = require('./channelSocket')
 const { hexToByteArr, byteArrToBuffer, InvalidArgumentError } = require('@omisego/omg-js-util')
 global.Buffer = global.Buffer || require('buffer').Buffer
 const Web3Utils = require('web3-utils')
@@ -34,7 +35,11 @@ class ChildChain {
   constructor (watcherUrl, childChainUrl) {
     this.watcherUrl = watcherUrl
     this.childChainUrl = childChainUrl
+    const ccUrl = new URL(childChainUrl)
+    this.channelSocket = new ChannelSocket(`ws://${ccUrl.host}:${ccUrl.port}/socket`)
+    this.channelSocket.connect()
   }
+
   /**
    * generate, sign, encode and submit transaction to childchain (refer to examples/node-sendTx.js for example inputs)
    *
@@ -110,6 +115,10 @@ class ChildChain {
     }, new Map())
 
     return Array.from(balanceMap).map(elem => ({ currency: elem[0], amount: elem[1] }))
+  }
+
+  subscribe(topic) {
+    return this.channelSocket.subscribe(topic)
   }
 }
 
